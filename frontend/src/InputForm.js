@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import { INDIAN_CITIES } from './cities';
+
+const sortedCities = [...INDIAN_CITIES].sort((a, b) => a.name.localeCompare(b.name));
 
 const styles = {
   form: {
@@ -35,6 +38,15 @@ const styles = {
     color: '#fff',
     fontSize: '1rem',
   },
+  select: {
+    padding: '12px',
+    borderRadius: '8px',
+    border: '1px solid rgba(255, 215, 0, 0.3)',
+    background: 'rgba(0, 0, 0, 0.3)',
+    color: '#fff',
+    fontSize: '1rem',
+    cursor: 'pointer',
+  },
   button: {
     gridColumn: '1 / -1',
     padding: '15px 30px',
@@ -47,29 +59,37 @@ const styles = {
     cursor: 'pointer',
     marginTop: '10px',
   },
-  presets: {
-    marginBottom: '15px',
-    fontSize: '0.9rem',
-    color: '#aaa',
-  },
-  presetBtn: {
-    background: 'rgba(255, 215, 0, 0.2)',
-    border: '1px solid rgba(255, 215, 0, 0.3)',
-    borderRadius: '5px',
-    padding: '5px 10px',
-    color: '#ffd700',
-    cursor: 'pointer',
-    marginLeft: '10px',
-  },
 };
 
 function InputForm({ onSubmit }) {
+  // Default to New Delhi
   const [form, setForm] = useState({
-    year: '', month: '', day: '', hour: '', minute: '', lat: '', lon: '', place: ''
+    year: '', 
+    month: '', 
+    day: '', 
+    hour: '', 
+    minute: '', 
+    lat: '28.6139', 
+    lon: '77.2090', 
+    place: 'New Delhi'
   });
 
   const handleChange = e => {
     setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleCityChange = e => {
+    const selectedCity = sortedCities.find(city => city.name === e.target.value);
+    if (selectedCity) {
+      setForm({
+        ...form,
+        lat: selectedCity.lat,
+        lon: selectedCity.lon,
+        place: selectedCity.name
+      });
+    } else {
+        setForm({...form, place: e.target.value });
+    }
   };
 
   const handleSubmit = e => {
@@ -77,19 +97,26 @@ function InputForm({ onSubmit }) {
     onSubmit(form);
   };
 
-  const setDelhi = () => setForm({ ...form, lat: '28.6139', lon: '77.2090', place: 'Delhi' });
-  const setMumbai = () => setForm({ ...form, lat: '19.0760', lon: '72.8777', place: 'Mumbai' });
-  const setBangalore = () => setForm({ ...form, lat: '12.9716', lon: '77.5946', place: 'Bangalore' });
-
   return (
     <form style={styles.form} onSubmit={handleSubmit}>
       <h3 style={styles.title}>📅 Enter Birth Details</h3>
       
-      <div style={styles.presets}>
-        Quick location:
-        <button type="button" style={styles.presetBtn} onClick={setDelhi}>Delhi</button>
-        <button type="button" style={styles.presetBtn} onClick={setMumbai}>Mumbai</button>
-        <button type="button" style={styles.presetBtn} onClick={setBangalore}>Bangalore</button>
+      <div style={{marginBottom: '20px'}}>
+        <div style={styles.inputGroup}>
+            <label style={styles.label}>Quick Location Select (India)</label>
+            <select 
+                style={styles.select} 
+                value={sortedCities.some(c => c.name === form.place && Math.abs(c.lat - form.lat) < 0.01) ? form.place : ""} 
+                onChange={handleCityChange}
+            >
+                <option value="" disabled>Select a City</option>
+                {sortedCities.map((city, index) => (
+                    <option key={index} value={city.name}>
+                        {city.name}
+                    </option>
+                ))}
+            </select>
+        </div>
       </div>
 
       <div style={styles.grid}>
