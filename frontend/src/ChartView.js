@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import SouthIndianChart from './SouthIndianChart';
 
 const styles = {
   container: {
@@ -7,10 +8,33 @@ const styles = {
     borderRadius: '15px',
     border: '1px solid rgba(255, 215, 0, 0.2)',
   },
+  header: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '20px',
+  },
   title: {
     color: '#ffd700',
-    marginBottom: '20px',
     fontSize: '1.3rem',
+    margin: 0,
+  },
+  controls: {
+    display: 'flex',
+    gap: '10px',
+  },
+  button: {
+    background: 'rgba(255, 215, 0, 0.1)',
+    border: '1px solid rgba(255, 215, 0, 0.3)',
+    color: '#ffd700',
+    padding: '5px 10px',
+    borderRadius: '5px',
+    cursor: 'pointer',
+    fontSize: '0.8rem',
+  },
+  activeButton: {
+    background: 'rgba(255, 215, 0, 0.3)',
+    fontWeight: 'bold',
   },
   grid: {
     display: 'grid',
@@ -33,50 +57,76 @@ const styles = {
     fontSize: '0.9rem',
     lineHeight: '1.6',
   },
-  lagna: {
-    background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 140, 0, 0.2))',
-    padding: '20px',
-    borderRadius: '10px',
-    marginBottom: '20px',
-    textAlign: 'center',
-  },
 };
 
 function ChartView({ chart }) {
+  const [viewMode, setViewMode] = useState('visual'); // 'visual' or 'list'
+
   if (!chart) return null;
   
-  const planets = chart.planets || chart.planet_positions || [];
+  const planets = chart.planets || chart.planet_positions || {};
+  
+  // Transform planets to list format for the "List" view
+  let planetList = [];
+  if (Array.isArray(planets)) {
+    planetList = planets;
+  } else {
+    planetList = Object.entries(planets).map(([key, value]) => ({
+      name: key,
+      ...value
+    }));
+  }
+
   const lagna = chart.lagna || chart.ascendant || {};
 
   return (
     <div style={styles.container}>
-      <h2 style={styles.title}>🪐 Birth Chart (Rashi)</h2>
-      
-      {lagna && (
-        <div style={styles.lagna}>
-          <div style={{color: '#ffd700', fontSize: '1.1rem'}}>Lagna (Ascendant)</div>
-          <div style={{color: '#fff', fontSize: '1.3rem', marginTop: '5px'}}>
-            {lagna.sign || 'N/A'} {lagna.degree ? `${lagna.degree.toFixed(2)}°` : ''}
-          </div>
-          {lagna.nakshatra && <div style={{color: '#aaa', marginTop: '5px'}}>Nakshatra: {lagna.nakshatra}</div>}
+      <div style={styles.header}>
+        <h2 style={styles.title}>✨ Birth Chart (Rashi Chakra)</h2>
+        <div style={styles.controls}>
+          <button 
+            style={{...styles.button, ...(viewMode === 'visual' ? styles.activeButton : {})}}
+            onClick={() => setViewMode('visual')}
+          >
+            Visual
+          </button>
+          <button 
+            style={{...styles.button, ...(viewMode === 'list' ? styles.activeButton : {})}}
+            onClick={() => setViewMode('list')}
+          >
+            List
+          </button>
+        </div>
+      </div>
+
+      {viewMode === 'visual' ? (
+        <SouthIndianChart chartData={chart} />
+      ) : (
+        <div style={styles.grid}>
+          {/* Lagna Info if in list mode */}
+          {lagna && (
+             <div style={styles.planet} key="lagna">
+               <div style={styles.planetName}>Ascendant (Lagna)</div>
+               <div style={styles.detail}>Sign: {lagna.sign}</div>
+               <div style={styles.detail}>Longitude: {lagna.longitude ? lagna.longitude.toFixed(2) : lagna.degree}°</div>
+               <div style={styles.detail}>Nakshatra: {lagna.nakshatra}</div>
+             </div>
+          )}
+
+          {planetList.map((planet, i) => (
+            <div key={i} style={styles.planet}>
+              <div style={styles.planetName}>{planet.name || planet.planet}</div>
+              <div style={styles.detail}>Sign: {planet.sign}</div>
+              <div style={styles.detail}>
+                 Longitude: {typeof planet.longitude === 'number' ? planet.longitude.toFixed(2) : (planet.degree || '0')}°
+              </div>
+              <div style={styles.detail}>House: {planet.house}</div>
+              <div style={styles.detail}>Nakshatra: {planet.nakshatra}</div>
+              {(planet.is_retrograde || planet.retrograde) && <div style={{color: '#ff6b6b'}}>Retrograde</div>}
+            </div>
+          ))}
         </div>
       )}
-
-      <div style={styles.grid}>
-        {Array.isArray(planets) ? planets.map((p, i) => (
-          <div key={i} style={styles.planet}>
-            <div style={styles.planetName}>{p.planet || p.name}</div>
-            <div style={styles.detail}>
-              <div>{p.sign} {p.degree ? `${p.degree.toFixed(2)}°` : ''}</div>
-              <div>House: {p.house}</div>
-              {p.nakshatra && <div>Nakshatra: {p.nakshatra}</div>}
-              {p.retrograde && <div style={{color: '#ff6b6b'}}>⟲ Retrograde</div>}
-            </div>
-          </div>
-        )) : (
-          <pre style={{color: '#aaa', fontSize: '0.8rem'}}>{JSON.stringify(chart, null, 2)}</pre>
-        )}
-      </div>
     </div>
   );
 }
