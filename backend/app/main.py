@@ -76,11 +76,13 @@ from features.chart.router import router as chart_router
 from features.dasha.router import router as dasha_router
 from features.yoga.router import router as yoga_router
 from features.interpretation.router import router as interpretation_router
+from features.transits.router import router as transit_router
 
 app.include_router(chart_router, prefix=settings.api_prefix)
 app.include_router(dasha_router, prefix=settings.api_prefix)
 app.include_router(yoga_router, prefix=settings.api_prefix)
 app.include_router(interpretation_router, prefix=settings.api_prefix)
+app.include_router(transit_router, prefix=settings.api_prefix)
 
 
 # Health check endpoint

@@ -335,7 +335,7 @@ class HouseAnalyzer:
             return "own_sign"
         return "neutral"
     
-    def _calculate_house_strength(
+    def _calculate_house_strength_legacy(
         self,
         house_num: int,
         lord: str,
@@ -344,57 +344,119 @@ class HouseAnalyzer:
         planets_in_house: List[str],
         planets: Dict
     ) -> Dict[str, Any]:
-        """Calculate overall house strength"""
-        
+        """
+        Calculate house strength using the LEGACY formula (unchanged from original).
+        Returns full transparency: factor-by-factor and planet-by-planet breakdown.
+        """
         scores = {}
         total = 0
         max_possible = 0
+        explanation_lines = []
         
         # 1. Lord dignity (0-5 points)
         dignity = self._get_planet_dignity(lord, lord_sign)
         dignity_scores = {"exalted": 5, "own_sign": 4, "moolatrikona": 4, 
                         "friendly": 3, "neutral": 2, "enemy": 1, "debilitated": 0}
         dignity_score = dignity_scores.get(dignity, 2)
-        scores["lord_dignity"] = {"score": dignity_score, "max": 5, "dignity": dignity}
+        dignity_reason = f"{lord} is {dignity} in {lord_sign}"
+        scores["lord_dignity"] = {
+            "score": dignity_score,
+            "max": 5,
+            "lord": lord,
+            "sign": lord_sign,
+            "dignity": dignity,
+            "reason": dignity_reason
+        }
+        explanation_lines.append(f"Lord Dignity: {dignity_score}/5 — {dignity_reason}")
         total += dignity_score
         max_possible += 5
         
         # 2. Lord placement (0-5 points)
         placement_score = 2  # neutral
-        if lord_house in self.TRIKONA_HOUSES:
+        placement_category = "neutral"
+        if lord_house == house_num:
             placement_score = 5
+            placement_category = "own_house"
+            placement_reason = f"{lord} is in its own house (H{lord_house}) — excellent"
+        elif lord_house in self.TRIKONA_HOUSES:
+            placement_score = 5
+            placement_category = "trikona"
+            placement_reason = f"{lord} is in trikona house H{lord_house} — very auspicious"
         elif lord_house in self.KENDRA_HOUSES:
             placement_score = 4
+            placement_category = "kendra"
+            placement_reason = f"{lord} is in kendra house H{lord_house} — strong"
         elif lord_house in self.UPACHAYA_HOUSES:
             placement_score = 3
+            placement_category = "upachaya"
+            placement_reason = f"{lord} is in upachaya house H{lord_house} — growth over time"
         elif lord_house in self.DUSTHANA_HOUSES:
             placement_score = 1
-        if lord_house == house_num:
-            placement_score = 5  # Own house
-        scores["lord_placement"] = {"score": placement_score, "max": 5, "house": lord_house}
+            placement_category = "dusthana"
+            placement_reason = f"{lord} is in dusthana house H{lord_house} — challenges"
+        else:
+            placement_reason = f"{lord} is in house H{lord_house} — neutral placement"
+        
+        scores["lord_placement"] = {
+            "score": placement_score,
+            "max": 5,
+            "lord": lord,
+            "house": lord_house,
+            "category": placement_category,
+            "reason": placement_reason
+        }
+        explanation_lines.append(f"Lord Placement: {placement_score}/5 — {placement_reason}")
         total += placement_score
         max_possible += 5
         
-        # 3. Benefic occupation (+2 each, max +6)
-        # 4. Malefic occupation (-1 each, max -3)
-        occupation_score = 0
-        benefic_count = 0
-        malefic_count = 0
+        # 3. Occupation: benefics (+2 each), malefics (-1 each)
+        raw_occupation_score = 0
+        benefic_planets = []
+        malefic_planets = []
+        contributions = []
+        
         for planet in planets_in_house:
             if planet in self.NATURAL_BENEFICS:
-                occupation_score += 2
-                benefic_count += 1
+                raw_occupation_score += 2
+                benefic_planets.append(planet)
+                contributions.append({
+                    "planet": planet,
+                    "kind": "natural_benefic",
+                    "delta": +2,
+                    "rule": f"{planet} is a natural benefic → +2"
+                })
             elif planet in self.NATURAL_MALEFICS:
-                occupation_score -= 1
-                malefic_count += 1
-        occupation_score = max(min(occupation_score, 6), -3)
+                raw_occupation_score -= 1
+                malefic_planets.append(planet)
+                contributions.append({
+                    "planet": planet,
+                    "kind": "natural_malefic",
+                    "delta": -1,
+                    "rule": f"{planet} is a natural malefic → −1"
+                })
+        
+        # Clamp to [-3, +6] then normalize to [0, 6]
+        clamped_score = max(min(raw_occupation_score, 6), -3)
+        normalized_score = clamped_score + 3  # shift to 0-6 range
+        
+        if planets_in_house:
+            occupation_reason = f"Planets in house: benefics {benefic_planets or 'none'}, malefics {malefic_planets or 'none'} → raw {raw_occupation_score}, normalized {normalized_score}/6"
+        else:
+            occupation_reason = "No planets occupy this house → neutral score 3/6"
+            normalized_score = 3
+        
         scores["occupation"] = {
-            "score": occupation_score + 3,  # Normalize to 0-6
+            "score": normalized_score,
             "max": 6,
-            "benefics": benefic_count,
-            "malefics": malefic_count
+            "raw_score": raw_occupation_score,
+            "clamped_score": clamped_score,
+            "benefic_planets": benefic_planets,
+            "malefic_planets": malefic_planets,
+            "contributions": contributions,
+            "reason": occupation_reason
         }
-        total += occupation_score + 3
+        explanation_lines.append(f"Occupation: {normalized_score}/6 — {occupation_reason}")
+        total += normalized_score
         max_possible += 6
         
         # Calculate percentage
@@ -417,7 +479,269 @@ class HouseAnalyzer:
             "max_score": max_possible,
             "percentage": round(percentage, 1),
             "level": level,
-            "breakdown": scores
+            "breakdown": scores,
+            "explanation": explanation_lines,
+            "formula": "legacy: lord_dignity(0-5) + lord_placement(0-5) + occupation(0-6)"
+        }
+    
+    def _calculate_house_strength_recommended(
+        self,
+        house_num: int,
+        lord: str,
+        lord_house: int,
+        lord_sign: str,
+        planets_in_house: List[str],
+        planets: Dict
+    ) -> Dict[str, Any]:
+        """
+        Calculate house strength using the RECOMMENDED formula with additional BPHS factors.
+        Factors:
+          1. Lord dignity (0-5)
+          2. Lord placement (0-5)
+          3. Occupation by benefics/malefics (0-6)
+          4. House type modifier (0-3) — kendra/trikona get bonus
+          5. Combustion penalty (-1 per combust planet in house)
+          6. Retrograde consideration (+1 for retrograde benefic, -1 for retrograde malefic)
+        """
+        scores = {}
+        total = 0
+        max_possible = 0
+        explanation_lines = []
+        
+        # 1. Lord dignity (0-5 points) — same as legacy
+        dignity = self._get_planet_dignity(lord, lord_sign)
+        dignity_scores = {"exalted": 5, "own_sign": 4, "moolatrikona": 4, 
+                        "friendly": 3, "neutral": 2, "enemy": 1, "debilitated": 0}
+        dignity_score = dignity_scores.get(dignity, 2)
+        dignity_reason = f"{lord} is {dignity} in {lord_sign}"
+        scores["lord_dignity"] = {
+            "score": dignity_score,
+            "max": 5,
+            "lord": lord,
+            "sign": lord_sign,
+            "dignity": dignity,
+            "reason": dignity_reason
+        }
+        explanation_lines.append(f"Lord Dignity: {dignity_score}/5 — {dignity_reason}")
+        total += dignity_score
+        max_possible += 5
+        
+        # 2. Lord placement (0-5 points) — same as legacy
+        placement_score = 2
+        placement_category = "neutral"
+        if lord_house == house_num:
+            placement_score = 5
+            placement_category = "own_house"
+            placement_reason = f"{lord} in own house H{lord_house} — excellent"
+        elif lord_house in self.TRIKONA_HOUSES:
+            placement_score = 5
+            placement_category = "trikona"
+            placement_reason = f"{lord} in trikona H{lord_house} — very auspicious"
+        elif lord_house in self.KENDRA_HOUSES:
+            placement_score = 4
+            placement_category = "kendra"
+            placement_reason = f"{lord} in kendra H{lord_house} — strong"
+        elif lord_house in self.UPACHAYA_HOUSES:
+            placement_score = 3
+            placement_category = "upachaya"
+            placement_reason = f"{lord} in upachaya H{lord_house} — growth"
+        elif lord_house in self.DUSTHANA_HOUSES:
+            placement_score = 1
+            placement_category = "dusthana"
+            placement_reason = f"{lord} in dusthana H{lord_house} — challenges"
+        else:
+            placement_reason = f"{lord} in H{lord_house} — neutral"
+        
+        scores["lord_placement"] = {
+            "score": placement_score,
+            "max": 5,
+            "lord": lord,
+            "house": lord_house,
+            "category": placement_category,
+            "reason": placement_reason
+        }
+        explanation_lines.append(f"Lord Placement: {placement_score}/5 — {placement_reason}")
+        total += placement_score
+        max_possible += 5
+        
+        # 3. Occupation (0-6) — same logic as legacy with planet ledger
+        raw_occupation_score = 0
+        benefic_planets = []
+        malefic_planets = []
+        contributions = []
+        
+        for planet in planets_in_house:
+            if planet in self.NATURAL_BENEFICS:
+                raw_occupation_score += 2
+                benefic_planets.append(planet)
+                contributions.append({"planet": planet, "kind": "natural_benefic", "delta": +2, "rule": f"{planet} benefic → +2"})
+            elif planet in self.NATURAL_MALEFICS:
+                raw_occupation_score -= 1
+                malefic_planets.append(planet)
+                contributions.append({"planet": planet, "kind": "natural_malefic", "delta": -1, "rule": f"{planet} malefic → −1"})
+        
+        clamped = max(min(raw_occupation_score, 6), -3)
+        normalized = clamped + 3
+        if not planets_in_house:
+            normalized = 3
+            occupation_reason = "No planets → neutral 3/6"
+        else:
+            occupation_reason = f"Benefics {benefic_planets or '[]'}, malefics {malefic_planets or '[]'} → {normalized}/6"
+        
+        scores["occupation"] = {
+            "score": normalized,
+            "max": 6,
+            "raw_score": raw_occupation_score,
+            "benefic_planets": benefic_planets,
+            "malefic_planets": malefic_planets,
+            "contributions": contributions,
+            "reason": occupation_reason
+        }
+        explanation_lines.append(f"Occupation: {normalized}/6 — {occupation_reason}")
+        total += normalized
+        max_possible += 6
+        
+        # 4. House type modifier (0-3) — NEW in recommended
+        house_type_score = 1  # neutral
+        if house_num in self.KENDRA_HOUSES:
+            house_type_score = 3
+            house_type_reason = f"H{house_num} is a kendra (angular) house — naturally strong"
+        elif house_num in self.TRIKONA_HOUSES:
+            house_type_score = 3
+            house_type_reason = f"H{house_num} is a trikona (trinal) house — auspicious"
+        elif house_num in self.UPACHAYA_HOUSES:
+            house_type_score = 2
+            house_type_reason = f"H{house_num} is an upachaya (growth) house — improves with time"
+        elif house_num in self.DUSTHANA_HOUSES:
+            house_type_score = 0
+            house_type_reason = f"H{house_num} is a dusthana (difficult) house — inherently challenging"
+        else:
+            house_type_reason = f"H{house_num} is a neutral house"
+        
+        scores["house_type"] = {
+            "score": house_type_score,
+            "max": 3,
+            "house_num": house_num,
+            "reason": house_type_reason
+        }
+        explanation_lines.append(f"House Type: {house_type_score}/3 — {house_type_reason}")
+        total += house_type_score
+        max_possible += 3
+        
+        # 5. Combustion penalty (-1 per combust planet in house, min 0, max contribution 0)
+        combust_penalty = 0
+        combust_planets = []
+        for planet in planets_in_house:
+            planet_data = planets.get(planet, {})
+            if planet_data.get("is_combust", False):
+                combust_penalty -= 1
+                combust_planets.append(planet)
+        
+        # This is a penalty factor: score range is -3 to 0, we add 3 for 0-3 scale
+        combust_normalized = max(combust_penalty, -3) + 3
+        if combust_planets:
+            combust_reason = f"Combust planets {combust_planets} weaken house → penalty {combust_penalty}"
+        else:
+            combust_reason = "No combust planets — no penalty"
+        
+        scores["combustion"] = {
+            "score": combust_normalized,
+            "max": 3,
+            "raw_penalty": combust_penalty,
+            "combust_planets": combust_planets,
+            "reason": combust_reason
+        }
+        explanation_lines.append(f"Combustion: {combust_normalized}/3 — {combust_reason}")
+        total += combust_normalized
+        max_possible += 3
+        
+        # 6. Retrograde consideration (benefic retro +1, malefic retro -1)
+        retro_score = 0
+        retro_effects = []
+        for planet in planets_in_house:
+            planet_data = planets.get(planet, {})
+            if planet_data.get("is_retrograde", False):
+                if planet in self.NATURAL_BENEFICS:
+                    retro_score += 1
+                    retro_effects.append({"planet": planet, "delta": +1, "rule": f"{planet} retrograde benefic intensifies positive → +1"})
+                elif planet in self.NATURAL_MALEFICS:
+                    retro_score -= 1
+                    retro_effects.append({"planet": planet, "delta": -1, "rule": f"{planet} retrograde malefic intensifies negative → −1"})
+        
+        retro_normalized = max(min(retro_score, 2), -2) + 2  # range 0-4
+        if retro_effects:
+            retro_reason = f"Retrograde effects: {[e['planet'] for e in retro_effects]} → {retro_normalized}/4"
+        else:
+            retro_reason = "No retrograde planets in house → neutral 2/4"
+            retro_normalized = 2
+        
+        scores["retrograde"] = {
+            "score": retro_normalized,
+            "max": 4,
+            "raw_score": retro_score,
+            "effects": retro_effects,
+            "reason": retro_reason
+        }
+        explanation_lines.append(f"Retrograde: {retro_normalized}/4 — {retro_reason}")
+        total += retro_normalized
+        max_possible += 4
+        
+        # Calculate percentage
+        percentage = (total / max_possible) * 100 if max_possible > 0 else 50
+        
+        # Determine strength level
+        if percentage >= 80:
+            level = "Very Strong"
+        elif percentage >= 60:
+            level = "Strong"
+        elif percentage >= 40:
+            level = "Average"
+        elif percentage >= 20:
+            level = "Weak"
+        else:
+            level = "Very Weak"
+        
+        return {
+            "total_score": total,
+            "max_score": max_possible,
+            "percentage": round(percentage, 1),
+            "level": level,
+            "breakdown": scores,
+            "explanation": explanation_lines,
+            "formula": "recommended: lord_dignity(0-5) + lord_placement(0-5) + occupation(0-6) + house_type(0-3) + combustion(0-3) + retrograde(0-4)"
+        }
+    
+    def _calculate_house_strength(
+        self,
+        house_num: int,
+        lord: str,
+        lord_house: int,
+        lord_sign: str,
+        planets_in_house: List[str],
+        planets: Dict
+    ) -> Dict[str, Any]:
+        """
+        Calculate both legacy and recommended house strength.
+        Returns combined result with backward compatibility.
+        """
+        legacy = self._calculate_house_strength_legacy(
+            house_num, lord, lord_house, lord_sign, planets_in_house, planets
+        )
+        recommended = self._calculate_house_strength_recommended(
+            house_num, lord, lord_house, lord_sign, planets_in_house, planets
+        )
+        
+        # Return combined structure with backward compatibility
+        return {
+            # Backward compatible fields (mapped to legacy)
+            "total_score": legacy["total_score"],
+            "max_score": legacy["max_score"],
+            "percentage": legacy["percentage"],
+            "level": legacy["level"],
+            "breakdown": legacy["breakdown"],
+            # New detailed structure
+            "legacy": legacy,
+            "recommended": recommended
         }
     
     def _generate_house_interpretation(
@@ -610,3 +934,8 @@ def get_single_house_analysis(
         planets=planets,
         include_remedies=include_remedies
     )
+
+
+
+
+

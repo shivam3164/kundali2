@@ -246,6 +246,123 @@ const styles = {
     color: '#666',
     padding: '40px',
   },
+  // New styles for dual scoring display
+  strengthBadgesContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+    alignItems: 'flex-end',
+  },
+  strengthBadgeSmall: {
+    padding: '2px 8px',
+    borderRadius: '12px',
+    fontSize: '0.65rem',
+    fontWeight: 'bold',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+  },
+  strengthBreakdownSection: {
+    background: 'rgba(0, 0, 0, 0.3)',
+    borderRadius: '10px',
+    padding: '12px',
+    marginTop: '12px',
+  },
+  breakdownTitle: {
+    color: '#ffd700',
+    fontSize: '0.85rem',
+    marginBottom: '10px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+  },
+  breakdownTabs: {
+    display: 'flex',
+    gap: '8px',
+    marginBottom: '12px',
+  },
+  breakdownTab: {
+    padding: '4px 12px',
+    borderRadius: '15px',
+    fontSize: '0.75rem',
+    cursor: 'pointer',
+    border: '1px solid rgba(255, 255, 255, 0.2)',
+    background: 'transparent',
+    color: '#888',
+    transition: 'all 0.2s',
+  },
+  breakdownTabActive: {
+    background: 'rgba(255, 215, 0, 0.2)',
+    borderColor: '#ffd700',
+    color: '#ffd700',
+  },
+  factorRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '6px 0',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+  },
+  factorName: {
+    color: '#ccc',
+    fontSize: '0.8rem',
+    flex: 1,
+  },
+  factorScore: {
+    color: '#ffd700',
+    fontSize: '0.8rem',
+    fontWeight: 'bold',
+    minWidth: '50px',
+    textAlign: 'right',
+  },
+  factorReason: {
+    color: '#888',
+    fontSize: '0.7rem',
+    marginTop: '2px',
+    fontStyle: 'italic',
+  },
+  contributionItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '4px 8px',
+    background: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: '4px',
+    marginTop: '4px',
+  },
+  contributionPlanet: {
+    color: '#64b5f6',
+    fontSize: '0.75rem',
+    fontWeight: 'bold',
+  },
+  contributionDelta: {
+    fontSize: '0.75rem',
+    fontWeight: 'bold',
+  },
+  totalRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '10px 0 0 0',
+    marginTop: '8px',
+    borderTop: '1px solid rgba(255, 215, 0, 0.3)',
+  },
+  totalLabel: {
+    color: '#ffd700',
+    fontSize: '0.9rem',
+    fontWeight: 'bold',
+  },
+  totalValue: {
+    color: '#ffd700',
+    fontSize: '1rem',
+    fontWeight: 'bold',
+  },
+  formulaText: {
+    color: '#666',
+    fontSize: '0.7rem',
+    marginTop: '8px',
+    fontStyle: 'italic',
+  },
 };
 
 const getStrengthColor = (level) => {
@@ -269,8 +386,100 @@ const getOutlookColor = (outlook) => {
   }
 };
 
+// Strength Breakdown Component
+const StrengthBreakdown = ({ strength }) => {
+  const [activeTab, setActiveTab] = useState('legacy');
+  
+  const scoreData = strength?.[activeTab];
+  if (!scoreData) return null;
+  
+  const breakdown = scoreData.breakdown || {};
+  
+  return (
+    <div style={styles.strengthBreakdownSection}>
+      <div style={styles.breakdownTitle}>
+        📊 Strength Breakdown
+      </div>
+      
+      {/* Tabs for Legacy vs Recommended */}
+      <div style={styles.breakdownTabs}>
+        <button
+          style={{
+            ...styles.breakdownTab,
+            ...(activeTab === 'legacy' ? styles.breakdownTabActive : {})
+          }}
+          onClick={(e) => { e.stopPropagation(); setActiveTab('legacy'); }}
+        >
+          Legacy ({strength.legacy?.percentage}%)
+        </button>
+        <button
+          style={{
+            ...styles.breakdownTab,
+            ...(activeTab === 'recommended' ? styles.breakdownTabActive : {})
+          }}
+          onClick={(e) => { e.stopPropagation(); setActiveTab('recommended'); }}
+        >
+          Recommended ({strength.recommended?.percentage}%)
+        </button>
+      </div>
+      
+      {/* Factor breakdown */}
+      {Object.entries(breakdown).map(([key, factor]) => (
+        <div key={key}>
+          <div style={styles.factorRow}>
+            <div style={styles.factorName}>
+              {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+            </div>
+            <div style={styles.factorScore}>
+              {factor.score}/{factor.max}
+            </div>
+          </div>
+          {factor.reason && (
+            <div style={styles.factorReason}>{factor.reason}</div>
+          )}
+          {/* Show planet contributions for occupation */}
+          {factor.contributions && factor.contributions.length > 0 && (
+            <div style={{ marginTop: '4px', marginBottom: '8px' }}>
+              {factor.contributions.map((contrib, i) => (
+                <div key={i} style={styles.contributionItem}>
+                  <span style={styles.contributionPlanet}>{contrib.planet}</span>
+                  <span style={{
+                    ...styles.contributionDelta,
+                    color: contrib.delta > 0 ? '#81c784' : '#e57373'
+                  }}>
+                    {contrib.delta > 0 ? '+' : ''}{contrib.delta}
+                  </span>
+                  <span style={{ color: '#666', fontSize: '0.7rem' }}>{contrib.rule}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+      
+      {/* Total */}
+      <div style={styles.totalRow}>
+        <div style={styles.totalLabel}>Total Score</div>
+        <div style={styles.totalValue}>
+          {scoreData.total_score}/{scoreData.max_score} = {scoreData.percentage}%
+        </div>
+      </div>
+      
+      {/* Formula hint */}
+      {scoreData.formula && (
+        <div style={styles.formulaText}>
+          Formula: {scoreData.formula}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const HouseCard = ({ house, isExpanded, onToggle }) => {
   const strengthColor = getStrengthColor(house.strength?.level);
+  const legacyPct = house.strength?.legacy?.percentage ?? house.strength?.percentage;
+  const recommendedPct = house.strength?.recommended?.percentage;
+  const recommendedColor = getStrengthColor(house.strength?.recommended?.level);
   
   return (
     <div 
@@ -286,13 +495,26 @@ const HouseCard = ({ house, isExpanded, onToggle }) => {
           <h4 style={styles.houseName}>{house.name}</h4>
           <span style={styles.houseSubtitle}>{house.english_name}</span>
         </div>
-        <span style={{
-          ...styles.strengthBadge,
-          background: `${strengthColor}20`,
-          color: strengthColor,
-        }}>
-          {house.strength?.percentage}%
-        </span>
+        <div style={styles.strengthBadgesContainer}>
+          {/* Legacy badge (always shown) */}
+          <span style={{
+            ...styles.strengthBadge,
+            background: `${strengthColor}20`,
+            color: strengthColor,
+          }}>
+            {legacyPct}%
+          </span>
+          {/* Recommended badge (if available) */}
+          {recommendedPct !== undefined && (
+            <span style={{
+              ...styles.strengthBadgeSmall,
+              background: `${recommendedColor}15`,
+              color: recommendedColor,
+            }}>
+              <span style={{ opacity: 0.7 }}>★</span> {recommendedPct}%
+            </span>
+          )}
+        </div>
       </div>
       
       <div style={styles.houseBasics}>
@@ -380,6 +602,13 @@ const HouseCard = ({ house, isExpanded, onToggle }) => {
             <p style={styles.interpretationText}>{house.interpretation?.strength_assessment}</p>
             <p style={styles.interpretationText}>{house.interpretation?.lord_effect}</p>
           </div>
+          
+          {/* Strength Breakdown - shows how percentage was calculated */}
+          {house.strength && (
+            <div style={styles.section}>
+              <StrengthBreakdown strength={house.strength} />
+            </div>
+          )}
           
           {/* Remedies */}
           {house.remedies?.recommended?.length > 0 && (

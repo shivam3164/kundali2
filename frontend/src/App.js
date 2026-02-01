@@ -5,6 +5,7 @@ import DashaTimeline from './DashaTimeline';
 import YogaList from './YogaList';
 import Interpretations from './Interpretations';
 import HouseInterpretation from './HouseInterpretation';
+import EnhancedTransitAnalysis from './EnhancedTransitAnalysis';
 
 const styles = {
   app: {
@@ -51,6 +52,7 @@ function App() {
   const [yogaData, setYogaData] = useState(null);
   const [interpretation, setInterpretation] = useState(null);
   const [houseData, setHouseData] = useState(null);
+  const [birthData, setBirthData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -58,7 +60,7 @@ function App() {
     setLoading(true);
     setError(null);
     
-    const birthData = {
+    const birthDataObj = {
       year: parseInt(form.year),
       month: parseInt(form.month),
       day: parseInt(form.day),
@@ -70,11 +72,14 @@ function App() {
       ayanamsa: "lahiri"
     };
 
+    // Store birth data for transit analysis
+    setBirthData(birthDataObj);
+
     try {
       const chartRes = await fetch('/api/v1/chart/calculate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(birthData)
+        body: JSON.stringify(birthDataObj)
       });
       if (!chartRes.ok) throw new Error('Failed to calculate chart');
       const chart = await chartRes.json();
@@ -83,7 +88,7 @@ function App() {
       const dashaRes = await fetch('/api/v1/dasha/calculate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(birthData)
+        body: JSON.stringify(birthDataObj)
       });
       if (dashaRes.ok) {
         const dasha = await dashaRes.json();
@@ -93,7 +98,7 @@ function App() {
       const yogaRes = await fetch('/api/v1/yoga/detect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(birthData)
+        body: JSON.stringify(birthDataObj)
       });
       if (yogaRes.ok) {
         const yoga = await yogaRes.json();
@@ -103,7 +108,7 @@ function App() {
       const interpRes = await fetch('/api/v1/interpretation/summary', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(birthData)
+        body: JSON.stringify(birthDataObj)
       });
       if (interpRes.ok) {
         const interp = await interpRes.json();
@@ -114,7 +119,7 @@ function App() {
       const houseRes = await fetch('/api/v1/interpretation/houses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(birthData)
+        body: JSON.stringify(birthDataObj)
       });
       if (houseRes.ok) {
         const houses = await houseRes.json();
@@ -144,6 +149,7 @@ function App() {
       {chartData && (
         <div style={styles.results}>
           <ChartView chart={chartData} />
+          <EnhancedTransitAnalysis birthData={birthData} />
           <DashaTimeline dashas={dashaData} />
           <YogaList yogas={yogaData} />
           <HouseInterpretation houseData={houseData} />
