@@ -46,6 +46,7 @@ const styles = {
     color: '#fff',
     fontSize: '1rem',
     cursor: 'pointer',
+    width: '100%',
   },
   button: {
     gridColumn: '1 / -1',
@@ -78,17 +79,21 @@ function InputForm({ onSubmit }) {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleCityChange = e => {
-    const selectedCity = sortedCities.find(city => city.name === e.target.value);
-    if (selectedCity) {
-      setForm({
-        ...form,
-        lat: selectedCity.lat,
-        lon: selectedCity.lon,
-        place: selectedCity.name
-      });
+  const handleCitySearch = e => {
+    const inputValue = e.target.value;
+    
+    // Attempt to find city in list
+    const foundCity = sortedCities.find(c => c.name.toLowerCase() === inputValue.toLowerCase());
+    
+    if (foundCity) {
+        setForm({
+            ...form,
+            lat: foundCity.lat,
+            lon: foundCity.lon,
+            place: foundCity.name
+        });
     } else {
-        setForm({...form, place: e.target.value });
+        setForm({ ...form, place: inputValue });
     }
   };
 
@@ -103,19 +108,20 @@ function InputForm({ onSubmit }) {
       
       <div style={{marginBottom: '20px'}}>
         <div style={styles.inputGroup}>
-            <label style={styles.label}>Quick Location Select (India)</label>
-            <select 
+            <label style={styles.label}>Quick Location Search (Type to filter)</label>
+            <input 
+                list="city-list" 
                 style={styles.select} 
-                value={sortedCities.some(c => c.name === form.place && Math.abs(c.lat - form.lat) < 0.01) ? form.place : ""} 
-                onChange={handleCityChange}
-            >
-                <option value="" disabled>Select a City</option>
+                placeholder="Search or select a city..."
+                value={form.place}
+                onChange={handleCitySearch}
+                onFocus={(e) => e.target.select()}
+            />
+            <datalist id="city-list">
                 {sortedCities.map((city, index) => (
-                    <option key={index} value={city.name}>
-                        {city.name}
-                    </option>
+                    <option key={index} value={city.name} />
                 ))}
-            </select>
+            </datalist>
         </div>
       </div>
 
