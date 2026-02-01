@@ -37,29 +37,60 @@ const styles = {
     fontWeight: 'bold',
     marginBottom: '5px',
   },
+  empty: {
+    color : 'rgba(255, 255, 255, 0.5)',
+    textAlign: 'center',
+    padding: '20px'
+  }
 };
 
 function Interpretations({ interpretations }) {
-  if (!interpretations) return null;
+  if (!interpretations) {
+     return <div style={styles.empty}>No interpretations available.</div>;
+  }
   
   // Handle different response formats
   if (interpretations.summary) {
     return (
       <div style={styles.container}>
         <h2 style={styles.title}>📖 Chart Interpretation</h2>
-        <div style={styles.section}>
-          <div style={styles.text}>{interpretations.summary}</div>
-        </div>
+        
+        {/* Render Summary String */}
+        {typeof interpretations.summary === 'string' && (
+             <div style={styles.section}>
+                <div style={styles.text}>{interpretations.summary}</div>
+             </div>
+        )}
+
+        {/* Render Summary Object/List if structured */}
+        {typeof interpretations.summary === 'object' && !Array.isArray(interpretations.summary) && (
+            <div style={styles.section}>
+                {Object.entries(interpretations.summary).map(([key, val], i) => (
+                    <div key={i} style={styles.text}>
+                        <strong>{key}:</strong> {val}
+                    </div>
+                ))}
+            </div>
+        )}
+
         {interpretations.strengths && (
           <div style={styles.section}>
             <div style={styles.sectionTitle}>Strengths</div>
-            <div style={styles.text}>{interpretations.strengths}</div>
+            <div style={styles.text}>
+                {Array.isArray(interpretations.strengths) 
+                    ? interpretations.strengths.join(', ') 
+                    : interpretations.strengths}
+            </div>
           </div>
         )}
         {interpretations.challenges && (
           <div style={styles.section}>
             <div style={styles.sectionTitle}>Areas for Growth</div>
-            <div style={styles.text}>{interpretations.challenges}</div>
+             <div style={styles.text}>
+                {Array.isArray(interpretations.challenges) 
+                    ? interpretations.challenges.join(', ') 
+                    : interpretations.challenges}
+            </div>
           </div>
         )}
       </div>
@@ -67,7 +98,16 @@ function Interpretations({ interpretations }) {
   }
 
   const interpList = Array.isArray(interpretations) ? interpretations : 
-                     interpretations.interpretations || [];
+                     (interpretations.interpretations || []);
+  
+  if (interpList.length === 0) {
+      return (
+          <div style={styles.container}>
+             <h2 style={styles.title}>📖 Interpretations</h2>
+             <div style={styles.empty}>No specific interpretations found.</div>
+          </div>
+      )
+  }
 
   return (
     <div style={styles.container}>
@@ -83,3 +123,4 @@ function Interpretations({ interpretations }) {
 }
 
 export default Interpretations;
+
