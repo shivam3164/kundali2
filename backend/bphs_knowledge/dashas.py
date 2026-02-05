@@ -69,6 +69,7 @@ NAKSHATRA_DASHA_LORD = {
 
 MAHADASHA_EFFECTS = {
     'Sun': {
+        'description': 'A period focusing on career, authority, ego, and your relationship with your father. It typically brings increased vitality and opportunities for leadership.',
         'favorable': {
             'conditions': ['exalted', 'own_sign', 'kendra', 'trikona', 'strong'],
             'effects': [
@@ -94,6 +95,7 @@ MAHADASHA_EFFECTS = {
         'source': 'BPHS Ch. 48'
     },
     'Moon': {
+        'description': 'A time of emotional experiences, focusing on home, mother, and mental well-being. Expect fluctuations in specific moods and general outlook.',
         'favorable': {
             'conditions': ['waxing', 'exalted', 'own_sign', 'kendra', 'benefic_aspect'],
             'effects': [
@@ -119,6 +121,7 @@ MAHADASHA_EFFECTS = {
         'source': 'BPHS Ch. 49'
     },
     'Mars': {
+        'description': 'A high-energy period favoring action, courage, and initiative. It brings drive but one must watch out for conflicts, impulsiveness, or accidents.',
         'favorable': {
             'conditions': ['exalted', 'own_sign', 'kendra', 'yoga_karaka', 'strong'],
             'effects': [
@@ -144,6 +147,7 @@ MAHADASHA_EFFECTS = {
         'source': 'BPHS Ch. 50'
     },
     'Mercury': {
+        'description': 'Focuses on communication, business, intellect, and learning. Excellent for writing, trading, skill development, and networking.',
         'favorable': {
             'conditions': ['exalted', 'own_sign', 'kendra', 'benefic_conjunction'],
             'effects': [
@@ -169,6 +173,7 @@ MAHADASHA_EFFECTS = {
         'source': 'BPHS Ch. 51'
     },
     'Jupiter': {
+        'description': 'A benevolent period for growth, learning, wisdom, progeny, and prosperity. Favorable for spiritual activities and higher education.',
         'favorable': {
             'conditions': ['exalted', 'own_sign', 'kendra', 'trikona', 'strong'],
             'effects': [
@@ -194,6 +199,7 @@ MAHADASHA_EFFECTS = {
         'source': 'BPHS Ch. 52'
     },
     'Venus': {
+        'description': 'A time for relationships, creativity, luxury, and comfort. Favors romance, marriage, artistic pursuits, and enjoyment of life pleasures.',
         'favorable': {
             'conditions': ['exalted', 'own_sign', 'kendra', 'trikona', 'strong'],
             'effects': [
@@ -219,6 +225,7 @@ MAHADASHA_EFFECTS = {
         'source': 'BPHS Ch. 53'
     },
     'Saturn': {
+        'description': 'A time for discipline, hard work, structure, and responsibility. Success comes through patience, perseverance, and facing reality without shortcuts.',
         'favorable': {
             'conditions': ['exalted', 'own_sign', 'yoga_karaka', 'kendra_lord', 'strong'],
             'effects': [
@@ -244,6 +251,7 @@ MAHADASHA_EFFECTS = {
         'source': 'BPHS Ch. 54'
     },
     'Rahu': {
+        'description': 'A period of ambition, sudden changes, and worldly desires. Often brings execution of big plans, foreign travel, or unconventional success.',
         'favorable': {
             'conditions': ['kendra', 'trikona', 'exalted_sign', 'benefic_conjunction'],
             'effects': [
@@ -269,6 +277,7 @@ MAHADASHA_EFFECTS = {
         'source': 'BPHS Ch. 55'
     },
     'Ketu': {
+        'description': 'A period of detachment, spirituality, and introspection. May bring sudden breaks, unexpected events, or release from past patterns.',
         'favorable': {
             'conditions': ['benefic_conjunction', 'trikona', '12th_for_moksha'],
             'effects': [

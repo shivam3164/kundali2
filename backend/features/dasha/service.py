@@ -432,6 +432,7 @@ class DashaService:
                 "end_date": md["end_date"],
                 "duration_years": round(md["duration_years"], 2),
                 "is_current": False,
+                "description": self.knowledge.MAHADASHA_EFFECTS.get(md["planet"], {}).get("description", ""),
                 "antardashas": [],
             }
             

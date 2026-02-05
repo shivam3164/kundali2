@@ -177,7 +177,8 @@ class BPHSKnowledge:
     # Dashas
     vimshottari_periods = VIMSHOTTARI_PERIODS
     vimshottari_order = VIMSHOTTARI_ORDER
-    dasha_effects = DASHA_EFFECTS
+    dasha_effects = DASHA_EFFECTS  # This refers to detailed effects for predictions
+    MAHADASHA_EFFECTS = MAHADASHA_EFFECTS  # This contains the general descriptions
     
     # Divisional Charts
     divisional_charts = DIVISIONAL_CHARTS
